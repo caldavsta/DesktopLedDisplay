@@ -18,7 +18,7 @@ import asyncio
 import threading
 
 
-weather_string = "??f"
+weather_string = "00f"
 time_string = "xx:xx:xx"
 scroll_text_current = 0 #beta
 weather_requested = 0
