@@ -16,13 +16,16 @@ import argparse
 import forecastio
 import asyncio
 import threading
+import RPi.GPIO as GPIO
+import dht11
 
-
-weather_string = "00f"
+weather_string = "??f"
 time_string = "xx:xx:xx"
+dht11_string = "??f"
 scroll_text_current = 0 #beta
 weather_requested = 0
 loading_animation_status = 1
+instance = dht11.DHT11(pin=4)
 
 # the following method is Copyright (c) 2014-17 Richard Hull 
 def get_device(actual_args=None):
@@ -88,7 +91,14 @@ def update_weather():
 def update_time():
     global time_string
     now=time.localtime(time.time())
-    time_string = time.strftime("%-I:%M:%S", now)
+    #time_string = time.strftime("%-I:%M:%S", now)
+    time_string = time.strftime("%-I:%M", now)
+
+def update_dht11():
+    global dht11_string
+    result = instance.read()
+    if result.is_valid():
+        dht11_string = str("{:.0f}".format(result.temperature * 9/5 + 32)) + "f"
 
 def forecast_received(forecast):
     global weather_string
@@ -113,7 +123,15 @@ def draw_loading_animation(draw):
     else:
         loading_animation_status += 1
 
+def draw_second_dot(draw):
+    now = time.localtime(time.time())
+    seconds = now.tm_sec + 2
+    draw.rectangle((seconds, 7, seconds, 7), fill="white")
+
 def main():
+    GPIO.setwarnings(True)
+    GPIO.setmode(GPIO.BCM)
+
     device.height=8
     device.width=64
     max_depth = 64
@@ -129,9 +147,11 @@ def main():
     while True:        
         with canvas(device) as draw:
             update_time()
-            
-            text(draw,(0,0), weather_string + " " + time_string, fill="white", font=proportional(LCD_FONT))
-            
+            update_dht11()
+            draw_second_dot(draw)
+            #text(draw,(0,0), weather_string + " " + time_string, fill="white", font=proportional(LCD_FONT))
+            text(draw, (0, 0), weather_string + " " + time_string + " " + dht11_string, fill="white", font=proportional(LCD_FONT))
+
             if (weather_requested == 1):
                 draw_loading_animation(draw)
             schedule.run_pending()
